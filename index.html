@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manavpahadi21 - Multi-Year Content Calendar Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-12">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-amber-400 tracking-wide">Manavpahadi21 Studio</h1>
+            <p class="text-slate-400 text-sm mt-1">Multi-Year Daily Posting & Content Calendar (2026 - 2028)</p>
+        </header>
+
+        <!-- Controls: Year & Month Selector -->
+        <div class="bg-slate-800 p-4 rounded-xl shadow-lg mb-6 flex flex-wrap items-center justify-between gap-4 border border-slate-700">
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-semibold text-slate-300">Year:</label>
+                <select id="yearSelect" class="bg-slate-900 text-amber-400 border border-slate-600 rounded-lg px-3 py-1.5 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400" onchange="renderCalendar()">
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 overflow-x-auto max-w-full pb-2 md:pb-0" id="monthButtons">
+                <!-- Month Buttons injected via JS -->
+            </div>
+        </div>
+
+        <!-- Monthly Progress Card -->
+        <div class="bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-xl mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h2 id="currentMonthTitle" class="text-xl font-bold text-slate-100">November 2026</h2>
+                <p class="text-sm text-slate-400">Daily Target: 4 Videos (08:00 AM, 01:00 PM, 05:00 PM, 09:00 PM)</p>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <span id="monthlyCount" class="text-2xl font-black text-amber-400">0 / 0</span>
+                    <p class="text-xs text-slate-400">Videos Posted</p>
+                </div>
+                <button onclick="exportData()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition shadow-md">
+                    📥 Export Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl">
+            <!-- Weekdays Header -->
+            <div class="grid grid-cols-7 gap-2 text-center font-bold text-slate-400 text-xs md:text-sm mb-4 pb-2 border-b border-slate-700">
+                <span class="text-rose-400">Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span class="text-indigo-400">Sat</span>
+            </div>
+            <!-- Days Grid -->
+            <div id="calendarGrid" class="grid grid-cols-7 gap-2">
+                <!-- Days injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Daily Slots -->
+    <div id="dayModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-lg font-bold text-amber-400">Date: 16 Nov 2026</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-100 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6" id="modalSlotsContainer">
+                <!-- 4 Slots injected via JS -->
+            </div>
+            <div class="p-4 bg-slate-800 border-t border-slate-700 text-right">
+                <button onclick="closeModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm transition">
+                    Save & Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const slotsInfo = [
+            { time: "08:00 AM", label: "Morning Slot" },
+            { time: "01:00 PM", label: "Noon Slot" },
+            { time: "05:00 PM", label: "Evening Slot" },
+            { time: "09:00 PM", label: "Night Slot" }
+        ];
+
+        let selectedYear = 2026;
+        let selectedMonth = 10; // November
+        let activeDateKey = "";
+
+        // Load data from localStorage
+        let db = JSON.parse(localStorage.getItem('manav_pahadi_db') || '{}');
+
+        function initApp() {
+            renderMonthButtons();
+            renderCalendar();
+        }
+
+        function renderMonthButtons() {
+            const container = document.getElementById('monthButtons');
+            container.innerHTML = months.map((m, idx) => `
+                <button onclick="changeMonth(${idx})" class="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${idx === selectedMonth ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-900 text-slate-300 hover:bg-slate-700'}">
+                    ${m.slice(0,3)}
+                </button>
+            `).join('');
+        }
+
+        function changeMonth(mIdx) {
+            selectedMonth = mIdx;
+            renderMonthButtons();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            selectedYear = parseInt(document.getElementById('yearSelect').value);
+            document.getElementById('currentMonthTitleinnerText', `${months[selectedMonth]} ${selectedYear}`);
+            document.getElementById('currentMonthTitle').innerText = `${months[selectedMonth]} ${selectedYear}`;
+
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            const firstDayIndex = new Date(selectedYear, selectedMonth, 1).getDay();
+            const totalDays = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+            let totalMonthVideos = 0;
+            let postedMonthVideos = 0;
+
+            // Empty slots for previous month padding
+            for (let i = 0; i < firstDayIndex; i++) {
+                grid.innerHTML += `<div class="aspect-square bg-slate-900/40 rounded-xl border border-slate-800 opacity-30"></div>`;
+            }
+
+            const today = new Date();
+            const isCurrentToday = (d) => d === today.getDate() && selectedMonth === today.getMonth() && selectedYear === today.getFullYear();
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateKey = `${selectedYear}-${selectedMonth}-${day}`;
+                if (!db[dateKey]) {
+                    db[dateKey] = [
+                        { title: '', tags: '', posted: false },
+                        { title: '', tags: '', posted: false },
+                        { title: '', tags: '', posted: false },
+                        { title: '', tags: '', posted: false }
+                    ];
+                }
+
+                const daySlots = db[dateKey];
+                const postedCount = daySlots.filter(s => s.posted).length;
+                totalMonthVideos += 4;
+                postedMonthVideos += postedCount;
+
+                let badgeColor = "bg-slate-800 text-slate-400 border-slate-700";
+                if (postedCount === 4) badgeColor = "bg-emerald-950/80 text-emerald-400 border-emerald-600/50";
+                else if (postedCount > 0) badgeColor = "bg-amber-950/80 text-amber-400 border-amber-600/50";
+
+                grid.innerHTML += `
+                    <div onclick="openDayModal('${dateKey}', ${day})" class="aspect-square bg-slate-900/80 hover:bg-slate-800 border ${isCurrentToday(day) ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-slate-700'} rounded-xl p-2 flex flex-col justify-between cursor-pointer transition transform hover:scale-105 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold ${isCurrentToday(day) ? 'text-amber-400' : 'text-slate-300'}">${day}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${badgeColor}">${postedCount}/4</span>
+                        </div>
+                        <div class="text-[9px] text-slate-400 truncate text-center">
+                            ${postedCount === 4 ? '✅ Complete' : postedCount > 0 ? '⏳ In Progress' : '⚪ Pending'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('monthlyCount').innerText = `${postedMonthVideos} / ${totalMonthVideos}`;
+        }
+
+        function openDayModal(dateKey, day) {
+            activeDateKey = dateKey;
+            document.getElementById('modalTitle').innerText = `Date: ${day} ${months[selectedMonth]} ${selectedYear}`;
+            
+            const container = document.getElementById('modalSlotsContainer');
+            container.innerHTML = '';
+
+            db[dateKey].forEach((slot, index) => {
+                container.innerHTML += `
+                    <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-extrabold text-amber-400 bg-amber-950/50 px-2.5 py-1 rounded-md border border-amber-800/50">
+                                Slot ${index + 1}: ${slotsInfo[index].time} (${slotsInfo[index].label})
+                            </span>
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">
+                                <input type="checkbox" ${slot.posted ? 'checked' : ''} onchange="updateSlot(${index}, 'posted', this.checked)" class="w-4 h-4 accent-amber-400 rounded">
+                                <span class="text-xs font-bold ${slot.posted ? 'text-emerald-400' : 'text-slate-400'}">Posted ✅</span>
+                            </label>
+                        </div>
+                        <input type="text" placeholder="Video Title..." value="${slot.title}" oninput="updateSlot(${index}, 'title', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+                        <div class="flex gap-2">
+                            <input type="text" placeholder="Hashtags (#PahadiVlogs #Himachal...)" value="${slot.tags}" oninput="updateSlot(${index}, 'tags', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+                            <button onclick="copyContent(${index})" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg text-xs font-bold transition">📋 Copy</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('dayModal').classList.remove('hidden');
+            document.getElementById('dayModal').classList.add('flex');
+        }
+
+        function updateSlot(index, field, value) {
+            db[activeDateKey][index][field] = value;
+            localStorage.setItem('manav_pahadi_db', JSON.stringify(db));
+            renderCalendar();
+        }
+
+        function copyContent(index) {
+            const slot = db[activeDateKey][index];
+            const textToCopy = `${slot.title}\n\n${slot.tags}`;
+            navigator.clipboard.writeText(textToCopy);
+            alert("Copied to Clipboard!");
+        }
+
+        function closeModal() {
+            document.getElementById('dayModal').classList.remove('flex');
+            document.getElementById('dayModal').classList.add('hidden');
+            renderCalendar();
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Manavpahadi21_Content_Backup_${selectedYear}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
